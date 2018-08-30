@@ -1,0 +1,108 @@
+- name: Warn if the server's Linux distribution is not Ubuntu 16.04
+  pause:
+    prompt: "Ubuntu 16.04 is the only currently supported distribution; the setup will probably fail. Press Enter if you still want to continue."
+  when: ansible_distribution != "Ubuntu" or ansible_distribution_version != "16.04"
+
+- name: Disable IPv6 with sysctl
+  sysctl: name={{ item }} value=1 state=present
+  with_items:
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.default.disable_ipv6
+    - net.ipv6.conf.lo.disable_ipv6
+    - net.ipv6.conf.eth0.disable_ipv6
+  reload: yes
+
+- name: Ensure UFW firewall is installed
+  apt: pkg=ufw state=present
+
+- name: Disable and Reset UFW firewall
+  ufw: state=reset
+  
+- name: Get local ansible controller public ip
+  delegate_to: localhost
+  become: False
+  shell: curl -s http://whatismyip.akamai.com/
+  register: controller_public_ip
+  
+- name: Set UFW firewall to allow incoming ssh connections from this localhost only
+  ufw: rule=allow proto=tcp src={{ controller_public_ip.stdout_lines[-1] }} port=22
+
+- name: Activate UFW firewall with default policy of deny
+  ufw: state=enabled policy=deny
+  
+- name: Set hostname
+  hostname: name="{{ new_hostname }}"
+  
+- name: Add hostname and a generic fqdn to /etc/hosts
+  lineinfile: dest=/etc/hosts
+              regexp="127.0.1.1"
+              line="127.0.1.1	{{ new_hostname }}.genericlocal {{ new_hostname }}"
+              state=present
+              
+- name: Ensure the APT cache is up to date
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Perform a full system upgrade
+  apt:
+    upgrade: "safe"
+    
+- name: Ensure unattended upgrades package is installed
+  apt: pkg=unattended-upgrades state=present
+  
+- name: Ensure email address is set for unattended update notifications
+  lineinfile: dest=/etc/apt/apt.conf.d/50unattended-upgrades
+              regexp="^Unattended-Upgrade::Mail"
+              line="Unattended-Upgrade::Mail \"{{ notifications_email }}\";"
+              state=present
+
+- name: Set unattended update intervals
+  copy: src=20auto-upgrades dest=/etc/apt/apt.conf.d/20auto-upgrades
+    
+- name: Add sshrc to notify of new ssh logins
+  template:
+    src: sshrc
+    dest: /etc/ssh/sshrc
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Allow only IPv4 for ssh access
+  lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^AddressFamily"
+              line="AddressFamily inet"
+              state=present
+  notify: Restart ssh
+  
+- name: Deny ssh password-based authentication
+  lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^PasswordAuthentication"
+              line="PasswordAuthentication no"
+              state=present
+  notify: Restart ssh
+  
+- name: Deny ssh access using the root user account
+  lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^PermitRootLogin"
+              line="PermitRootLogin no"
+              state=present
+  notify: Restart ssh
+
+- name: Install mailutils and postfix so we can send outbound emails 
+  apt: pkg={{ item }} state=present
+  with_items:
+    - mailutils
+    - postfix
+    
+- name: Set myhostname in postfix main.cf
+  lineinfile: dest=/etc/postfix/main.cf regexp='^myhostname =' line='myhostname = {{ new_hostname }}'
+  notify: Restart postfix
+
+- name: Allow postfix to listen only on the loopback interface
+  lineinfile: dest=/etc/postfix/main.cf regexp='^inet_interfaces' line='inet_interfaces = 127.0.0.1'
+  notify: Restart postfix
+  
+- name: Allow postfix to use only IPv4
+  lineinfile: dest=/etc/postfix/main.cf regexp='^inet_protocols' line='inet_protocols = ipv4'
+  notify: Restart postfix

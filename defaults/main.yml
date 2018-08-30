@@ -1,0 +1,6 @@
+---
+# The hostname you would like to assign
+new_hostname: "general"
+
+# The email you would like to use for any system-generated notifications such as for unnattended updates
+notifications_email: "myemail@email.com"
