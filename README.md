@@ -17,10 +17,11 @@ Of course, a number of additional actions are possible. For example, the configu
 
 **Required Variables**
 
-The role requires two variables:
+The role requires three variables:
 
 * new_hostname
 * notifications_email
+* limit_ssh_to_controller_ip
 
 These variables should be fairly self-explanatory.
 

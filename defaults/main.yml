@@ -4,3 +4,6 @@ new_hostname: "general"
 
 # The email you would like to use for any system-generated notifications such as for unnattended updates
 notifications_email: "myemail@email.com"
+
+# Whether or not you wish the host to allow ssh access only from the IP address this role is being run from
+limit_ssh_to_controller_ip: false
