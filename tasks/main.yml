@@ -24,8 +24,17 @@
   shell: curl -s http://whatismyip.akamai.com/
   register: controller_public_ip
   
-- name: Set UFW firewall to allow incoming ssh connections from this localhost only
-  ufw: rule=allow proto=tcp src={{ controller_public_ip.stdout_lines[-1] }} port=22
+- name: Set UFW firewall to allow incoming ssh connections
+  ufw: rule=allow proto=tcp port=22
+
+- name: Set UFW firewall to rate limit ssh connections
+  ufw: rule=limit proto=tcp port=22 
+
+- name: Set UFW firewall to allow incoming http connections
+  ufw: rule=allow proto=tcp port=80
+
+- name: Set UFW firewall to allow incoming https connections
+  ufw: rule=allow proto=tcp port=443
 
 - name: Activate UFW firewall with default policy of deny
   ufw: state=enabled policy=deny

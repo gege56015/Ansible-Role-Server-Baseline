@@ -8,7 +8,7 @@ This repo contains a generic portion (for demonstration purposes) of a larger an
 * Configure unattended updates with email notifications
 * Disable IPv6
 * Configure hostname
-* Configure default firewall rules (only port 22 allowed from the Ansible controller's IP)
+* Configure default firewall rules (only ports 22, 80, and 443 allowed, with rate-limiting on port 22)
 * Configure mail handling for outbound email notifications
 * Configure some SSH settings (no password-based logins, no root sessions allowed, only IPv4 allowed)
 * Configure email notifications for each ssh session initiated
