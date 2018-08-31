@@ -6,4 +6,5 @@ new_hostname: "general"
 notifications_email: "myemail@email.com"
 
 # Whether or not you wish the host to allow ssh access only from the IP address this role is being run from
+# obviously, you'll want to keep this set to "false" when using ansible pull
 limit_ssh_to_controller_ip: false

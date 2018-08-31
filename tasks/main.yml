@@ -19,11 +19,11 @@
   ufw: state=reset
   
 - name: Get local ansible controller public ip
-  when: limit_ssh_to_controller_ip|bool
   delegate_to: localhost
   become: False
   shell: curl -s http://whatismyip.akamai.com/
   register: controller_public_ip
+  when: limit_ssh_to_controller_ip|bool
   
 - name: Set UFW firewall to allow incoming ssh connections
   ufw: rule=allow proto=tcp port=22
